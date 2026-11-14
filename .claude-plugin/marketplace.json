@@ -1,0 +1,21 @@
+{
+  "name": "migugue-plugins",
+  "owner": {
+    "name": "Miguel Guerra",
+    "email": "miguel773@gmail.com"
+  },
+  "metadata": {
+    "description": "Miguel's Claude Code plugins for TME field work."
+  },
+  "plugins": [
+    {
+      "name": "tme-video-pipeline",
+      "source": "./",
+      "description": "Record narrated walkthrough videos of Aruba Central and CLI workflows. Zero-cost default (macOS say narration + raw-CDP Chrome capture), optional Descript revoice in your own cloned voice.",
+      "version": "0.0.1",
+      "keywords": ["video", "walkthrough", "tme", "aruba", "central", "cli", "descript"],
+      "homepage": "https://github.com/migugue/tme-video-pipeline",
+      "license": "MIT"
+    }
+  ]
+}
