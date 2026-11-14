@@ -1,0 +1,20 @@
+{
+  "name": "central_ntp_profile",
+  "description": "Example: create an NTP server profile in Aruba Central, starting from the Library Profile Management page. Walks through System → NTP Server → Create Profile → fill name + one server IP → Create.",
+  "tab_match": "central.arubanetworks.com",
+  "start_url": "https://internal-ui.central.arubanetworks.com/gravity/monitoring/config/profiles?contextType=global&selectedView=configuration&configMenu=library&configView=profile&configTab=profiles",
+  "voice": "Zoe (Premium)",
+  "narration": "To create an N-T-P server profile in Central, [[slnc 400]] from the Library Profile Management page, click Manage on the System card. [[slnc 1400]] Then click Manage on the N-T-P Server card. [[slnc 1400]] Click Create Profile, [[slnc 350]] and name it Owl-Bar-N-T-P Demo. [[slnc 1200]] Under N-T-P Server, click the plus button to add a server. [[slnc 1400]] Enter the I-P address, [[slnc 300]] then click Add. [[slnc 1300]] Finally, click Create to save the profile.",
+  "actions": [
+    {"at": 3.4, "kind": "point", "text": "Profiles Management", "optional": true, "hold_ms": 800},
+    {"at": 6.8, "kind": "click_button_with_text", "text": "Manage", "lead_ms": 300},
+    {"at": 11.0, "kind": "click_button_with_text", "text": "Manage", "lead_ms": 300},
+    {"at": 13.6, "kind": "click", "text": "Create Profile"},
+    {"at": 14.75, "kind": "type", "field": "name", "x_min": 1300, "text": "Owl-Bar-NTP-Demo"},
+    {"at": 17.5, "kind": "scroll_to_text", "text": "NTP Server *"},
+    {"at": 19.3, "kind": "click_button_with_text", "text": "Add", "right_side": true, "lead_ms": 300},
+    {"at": 22.9, "kind": "type_into_placeholder", "placeholder": "xxx.xxx", "text": "10.1.1.10"},
+    {"at": 25.4, "kind": "click_button_with_text", "text": "Add", "right_side": true, "lead_ms": 300},
+    {"at": 27.5, "kind": "click_button_with_text", "text": "Create", "right_side": true, "lead_ms": 400}
+  ]
+}

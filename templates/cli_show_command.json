@@ -1,0 +1,35 @@
+{
+  "name": "cli_show_hierarchy",
+  "description": "Example: Mobility Conductor CLI session that runs `no paging` then `show configuration node-hierarchy`. Uses the simulated terminal (black bg, light green text). Swap the `print_output` lines for your real SecureCRT log.",
+  "prompt": "(OWL_MCr01) *[mynode] #",
+  "voice": "Zoe (Premium)",
+  "narration": "The A-O-S eight Mobility Conductor gives you full visibility into configuration hierarchy and inheritance. [[slnc 500]] From the Mobility Conductor C-L-I, you can print the whole tree with two commands. [[slnc 600]] First, type 'no paging' to disable output pagination, [[slnc 1000]] so the hierarchy prints in one pass. [[slnc 500]] Then run 'show configuration node hierarchy'. [[slnc 1400]] The output walks the tree from the system root down, listing each config node with its type and name. [[slnc 500]] Groups define inheritance boundaries. Devices sit under the group they inherit from, identified by their Mac address. [[slnc 500]] Reading this top to bottom is how you capture the A-O-S eight hierarchy before replicating or redesigning it in Central.",
+  "steps": [
+    {"at": 11.5, "type_cmd": "no paging", "ms_per_char": 60},
+    {"at": 18.5, "type_cmd": "show configuration node-hierarchy", "ms_per_char": 55},
+    {"at": 22.5, "print_output": [
+      "Default-node is not configured. Autopark is disabled.",
+      "",
+      "Configuration node hierarchy",
+      "----------------------------",
+      "Config Node                                                             Type     Name",
+      "-----------                                                             ----     ----",
+      "/                                                                       System",
+      "/md                                                                     System",
+      "/md/OWL                                                                 Group",
+      "/md/OWL/Barcelona_HQ                                                    Group",
+      "/md/OWL/Barcelona_HQ/Barcelona_1                                        Group",
+      "/md/OWL/Barcelona_HQ/Barcelona_1/00:0c:29:9d:fj:bg                      Device   HQ-BAR1-MC01",
+      "/md/OWL/Barcelona_HQ/Barcelona_2                                        Group",
+      "/md/OWL/Barcelona_HQ/Barcelona_2/00:0c:29:9d:9f:e7                      Device   HQ-BAR2-MC01",
+      "/md/OWL/Distribution                                                    Group",
+      "/md/OWL/Distribution/Milan                                              Group",
+      "/md/OWL/Distribution/Milan/00:0c:29:9d:9f:e1                            Device   DIST-MIL-MC01",
+      "/md/OWL/Retail                                                          Group",
+      "/md/OWL/Retail/London                                                   Group",
+      "/md/OWL/Retail/London/00:0c:29:9d:9f:eb                                 Device   RET-LON-MC01",
+      "/mm                                                                     System",
+      "/mm/mynode                                                              System"
+    ], "ms_per_line": 40}
+  ]
+}

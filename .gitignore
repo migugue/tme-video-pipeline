@@ -1,0 +1,25 @@
+# Python venv and byte-compiled
+.venv/
+__pycache__/
+*.pyc
+*.pyo
+
+# Generated artifacts
+out/
+build/
+*_frames/
+*_seq/
+*.aiff
+*.m4a
+
+# Per-user config (lives in ~/.config/tme-video/ by default; never commit a project copy)
+tme-video.toml
+creds.toml
+
+# macOS / editor noise
+.DS_Store
+.vscode/
+.idea/
+
+# Node (if the terminal HTML ever needs a build step)
+node_modules/

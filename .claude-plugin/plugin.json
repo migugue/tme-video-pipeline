@@ -1,0 +1,12 @@
+{
+  "name": "tme-video-pipeline",
+  "version": "0.0.1",
+  "description": "Record narrated walkthrough videos of Aruba Central and CLI workflows. Zero-cost default (macOS say narration + raw-CDP Chrome capture), optional Descript revoice in your own cloned voice.",
+  "author": {
+    "name": "Miguel Guerra",
+    "email": "miguel773@gmail.com"
+  },
+  "homepage": "https://github.com/migugue/tme-video-pipeline",
+  "keywords": ["video", "walkthrough", "tme", "aruba", "central", "cli", "descript", "screen-recording"],
+  "license": "MIT"
+}

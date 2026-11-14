@@ -1,0 +1,76 @@
+<!doctype html>
+<html>
+<head>
+<meta charset="utf-8">
+<title>Terminal</title>
+<style>
+  html, body { margin: 0; padding: 0; height: 100%; background: #000000; }
+  body {
+    font-family: 'Menlo', 'SF Mono', 'Consolas', monospace;
+    font-size: 15px; line-height: 1.35; color: #a8e67a;
+    overflow: hidden;
+  }
+  #screen {
+    padding: 28px 36px;
+    white-space: pre;
+    min-height: 100vh;
+    box-sizing: border-box;
+  }
+  .prompt { color: #a8e67a; }
+  .cmd    { color: #d2fab0; font-weight: 600; }
+  .caret  {
+    display: inline-block;
+    width: 8px; height: 17px; background: #a8e67a;
+    vertical-align: text-bottom; margin-left: 1px;
+    animation: blink 1.0s steps(2, start) infinite;
+  }
+  @keyframes blink { 50% { background: transparent; } }
+</style>
+</head>
+<body>
+<div id="screen"></div>
+<script>
+// Populated at runtime from the spec JSON by the recorder, before it starts the screencast.
+// window.__TERM_CONFIG = { prompt: '(hostname) #', output: ['line1', 'line2', ...] }
+const screen = document.getElementById('screen');
+
+function esc(s) { return s.replace(/&/g, '&amp;').replace(/</g, '&lt;'); }
+function ps(ms) { return new Promise(r => setTimeout(r, ms)); }
+function removeCaret() { const c = screen.querySelector('.caret'); if (c) c.remove(); }
+
+async function typeInto(txt, msPerChar) {
+  for (let i = 0; i < txt.length; i++) {
+    screen.innerHTML += esc(txt[i]);
+    await ps(msPerChar);
+  }
+}
+
+window.__v8term = {
+  async init(promptText) {
+    window.__TERM_PROMPT = promptText || '($) #';
+    screen.innerHTML = `<span class="prompt">${esc(window.__TERM_PROMPT)}</span><span class="caret"></span>`;
+  },
+
+  async typeCommand(text, msPerChar = 65) {
+    removeCaret();
+    screen.innerHTML += `<span class="cmd">`;
+    await typeInto(text, msPerChar);
+    screen.innerHTML += `</span>\n`;
+  },
+
+  async newPrompt() {
+    screen.innerHTML += `<span class="prompt">${esc(window.__TERM_PROMPT)}</span><span class="caret"></span>`;
+  },
+
+  async printOutput(lines, msPerLine = 40) {
+    removeCaret();
+    for (let i = 0; i < lines.length; i++) {
+      screen.innerHTML += esc(lines[i]) + '\n';
+      await ps(msPerLine);
+    }
+    screen.innerHTML += `<span class="prompt">${esc(window.__TERM_PROMPT)}</span><span class="caret"></span>`;
+  }
+};
+</script>
+</body>
+</html>
