@@ -17,7 +17,7 @@ Record narrated walkthrough videos of live web apps (Aruba Central, VALID8, anyt
 - Claude Code installed (desktop app OR VS Code extension — either works)
 - Python 3.11 or later
 - Chrome Stable
-- Zoe Premium macOS voice (System Settings → Accessibility → Spoken Content → System Voice → Manage Voices → English (United Kingdom) → Zoe Premium)
+- Zoe Premium macOS voice — open **System Settings**, search `voice`, click **Spoken Content** in the results, open the **System Voice** dropdown → the bottom option (**Manage Voices…**, **Customize…**, or **Download More Voices…** depending on your macOS version) → expand **English (United Kingdom)** → check **Zoe (Premium)** → OK. Verify with `say -v '?' | grep -i Zoe`
 - A Descript account with a cloned voice, if you want to use `/video-revoice`
 
 ## Install
@@ -128,7 +128,7 @@ This is the pilot-friendly workflow when some TMEs are on Claude-Code-allowed ma
 | Symptom | Fix |
 |---|---|
 | `/video-bootstrap` says "Chrome not found" | Install Chrome Stable (`brew install --cask google-chrome`) or add Chrome to your Applications folder |
-| `/video-bootstrap` says "Zoe Premium not installed" | System Settings → Accessibility → Spoken Content → System Voice → Manage Voices → English (United Kingdom) → Zoe Premium (download, ~500 MB) |
+| `/video-bootstrap` says "Zoe Premium not installed" | Open **System Settings**, search `voice`, pick **Spoken Content**, open the **System Voice** dropdown, click the bottom option (**Manage Voices…** / **Customize…** / **Download More Voices…**), expand **English (United Kingdom)**, check **Zoe (Premium)** → OK. macOS has renamed this dialog across releases; the search-then-dropdown recipe is version-resilient |
 | `/video-record` hangs for ~30s then times out | Your Chrome debug session isn't running. Run `./start_chrome.sh` in a separate terminal, log in, then retry |
 | Recording captures only a frame or two | The Chrome tab is minimized or behind another window. Keep it visible during recording — Chrome throttles composition on hidden tabs |
 | `/video-revoice` fails at upload | The Descript MCP server isn't connected. In Claude Code, run `/mcp` and authorize Descript |

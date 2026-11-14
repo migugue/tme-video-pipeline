@@ -7,33 +7,46 @@ description: First-time setup for tme-video-pipeline — check deps, install Pyt
 
 Guide the user through first-time setup of the tme-video-pipeline plugin. Do NOT assume anything about their environment — check everything explicitly and report in a readable summary.
 
+## Required vs. optional
+
+Checks fall into two classes:
+
+- **Required** — if any of these fail, the recording pipeline doesn't work. Block the smoke test; tell the user what to fix.
+- **Optional** — needed only for `/video-revoice` (the cloned-voice path). A failure here is informational — the smoke test, `/video-new`, and `/video-record` all still work on the zero-cost default (Mac `say` + raw-CDP).
+
+| Check | Class |
+|---|---|
+| Chrome Stable | Required |
+| Python 3.11+ | Required |
+| Zoe Premium voice | Required (default narration) |
+| Descript MCP connected | **Optional** — only for `/video-revoice` |
+| Descript cloned-voice name | Optional — only for `/video-revoice` |
+
 ## Checks to run, in order
 
-Perform these in parallel where possible (environment probes), then sequential for the installs.
+### 1. Environment probes (parallel)
 
-### Environment probes (parallel)
+1. **Chrome Stable**: check `/Applications/Google Chrome.app/Contents/MacOS/Google Chrome` exists.
+2. **Python 3.11+**: `python3 --version`. If < 3.11, look for `python3.11`, `python3.12`, `python3.13`, `python3.14` on PATH or at `/opt/homebrew/bin/python3.11` (Apple Silicon) / `/usr/local/bin/python3.11` (Intel). Use the first one you find.
+3. **Zoe Premium voice**: `say -v '?' | grep -i 'Zoe.*Premium'`. If no match, prompt the user to install it — see "Installing the Zoe Premium voice" below.
+4. **Descript MCP server (optional)**: list available MCP tools. If `mcp__*__import_media` is present, mark connected; otherwise note it as optional and proceed.
 
-1. **Chrome Stable**: check that `/Applications/Google Chrome.app/Contents/MacOS/Google Chrome` exists. Report found/missing.
-2. **Python 3.11+**: `python3 --version`. Require 3.11 or newer. Report the version you found.
-3. **Zoe Premium voice**: `say -v '?' | grep -i 'Zoe'`. If the match includes `(Premium)` or the voice line reads as premium, mark installed; otherwise ask the user to download it via System Settings → Accessibility → Spoken Content → System Voice → Manage Voices → English (United Kingdom) → Zoe Premium.
-4. **Descript MCP server reachable**: list available MCP tools. If `mcp__*__import_media` is present, mark connected; otherwise tell the user to run `/mcp` and authorize Descript, then rerun this bootstrap.
-
-### Python dependencies
+### 2. Python dependencies
 
 Create a project venv (never global, never sudo):
 ```bash
-python3 -m venv .venv
+<python-exe> -m venv .venv
 .venv/bin/pip install --upgrade pip
 .venv/bin/pip install -r $CLAUDE_PLUGIN_ROOT/requirements.txt
 ```
 
-If `HTTPS_PROXY` is set in the environment, mention that pip will use it. If the install fails with a network error, surface the exact error line and suggest the user try again after setting `HTTPS_PROXY`.
+If `HTTPS_PROXY` is set, mention pip will use it. If pip fails with a network error, surface the exact error line and suggest the user try again after setting `HTTPS_PROXY`.
 
-### Preferences file
+### 3. Preferences file
 
 Ask the user:
-1. Display name of their cloned Descript voice (e.g., "Miguel Deeper Voice"). Skip if they don't plan to use `/video-revoice`.
-2. Preferred narration voice for drafts. Default: `Zoe (Premium)`. Offer no other options unless they ask.
+1. **Will you use `/video-revoice` (cloned voice in Descript)?** If no, skip step 2 and leave `cloned_voice_name` blank. If yes, ask for the display name of their cloned voice (e.g., "Miguel Deeper Voice").
+2. **Preferred draft narration voice.** Default: `Zoe (Premium)`. Don't offer other options unless they ask.
 
 Write to `~/.config/tme-video/tme-video.toml` (create the directory if missing):
 ```toml
@@ -41,24 +54,26 @@ Write to `~/.config/tme-video/tme-video.toml` (create the directory if missing):
 voice = "Zoe (Premium)"
 
 [descript]
-cloned_voice_name = "Miguel Deeper Voice"
+cloned_voice_name = ""   # or the name they gave
 
 [chrome]
 cdp_port = 9333
 profile_dir = "~/.tme-chrome-profile"
 ```
 
-Do not store secrets here. Descript / Higgsfield auth is handled by their MCP servers.
+Do not store secrets here. Descript auth is handled by the MCP server, not by this file.
 
-### Hello-world smoke test
+### 4. Hello-world smoke test
 
-Only if every environment probe passed, offer to record a 5-second demo:
+**Run this whenever every REQUIRED check passed, regardless of whether Descript is configured.** Do not skip the smoke test just because the user opted out of Descript or the Descript MCP isn't connected — those are optional and have nothing to do with the recording pipeline.
+
+Offer:
 
 > I'll open a fresh Chrome tab at https://example.com, say "Hello from your TME video pipeline", and produce `out/hello.mp4`. This spends zero credits. Run the demo? (y/n)
 
 On yes:
-1. Make sure `.venv/` exists in cwd. If not, re-run the dep install step.
-2. Launch Chrome via `$CLAUDE_PLUGIN_ROOT/scripts/start_chrome.sh` in a background process, capture the stdout, wait 3 seconds for it to come up.
+1. Make sure `.venv/` exists in cwd. If not, re-run step 2.
+2. Launch Chrome via `$CLAUDE_PLUGIN_ROOT/scripts/start_chrome.sh` in a background process, wait 3 seconds for the debug port to come up (poll `curl -sS http://127.0.0.1:9333/json/version`).
 3. Write a minimal spec to `specs/hello.json`:
    ```json
    {
@@ -74,24 +89,41 @@ On yes:
 4. Run `.venv/bin/python $CLAUDE_PLUGIN_ROOT/scripts/record_live.py specs/hello.json`.
 5. Confirm `out/hello.mp4` exists and is non-empty. Tell the user where it is.
 
+## Installing the Zoe Premium voice
+
+macOS has shuffled the voice download UI across releases, so don't hard-code one path. Give the user a resilient recipe:
+
+1. Open **System Settings** (macOS 13+) or **System Preferences** (macOS 12 and earlier).
+2. In the search box at the top of the Settings window, type **`voice`**. Pick the result that lands you in **Spoken Content** (usually under Accessibility).
+3. In Spoken Content, find the **System Voice** dropdown. Click the dropdown, then the option at the bottom — labeled **Manage Voices…**, **Customize…**, or **Download More Voices…** depending on your macOS version. (All three lead to the same voice catalog.)
+4. Expand **English (United Kingdom)** and check **Zoe (Premium)**. Click **OK** or **Done**. macOS downloads the voice (~500 MB).
+5. When the download finishes, verify in Terminal:
+   ```bash
+   say -v '?' | grep -i Zoe
+   ```
+   You should see `Zoe` and/or `Zoe (Premium)` with locale `en_GB`.
+
+If `say -v '?'` already shows `Zoe` without `(Premium)`, you have the base voice only — the Premium download is a separate, higher-quality variant and it's what the plugin defaults to.
+
 ## Reporting the result
 
-End with a crisp summary — what's ready, what's not, and the single next step. Example:
+End with a crisp summary — what's ready, what's not, what runs today, and the single next step. Example:
 
 > Setup complete.
 >   ✓ Chrome Stable
 >   ✓ Python 3.14 with the project venv at .venv/
 >   ✓ Zoe Premium voice
->   ✓ Descript MCP connected (voice: Miguel Deeper Voice)
->   ✓ hello.mp4 rendered (out/hello.mp4)
+>   ✓ hello.mp4 rendered → ~/test-v0-0-2/out/hello.mp4
+>   • Descript: not configured (optional — only needed for /video-revoice)
 >
 > Next: `/video-new` to script your first real recording.
 
-If anything failed, say exactly what and give the fix. Do not proceed to the smoke test with a partial environment.
+If a REQUIRED check failed, say exactly what and give the fix. Do NOT run the smoke test with a broken required dep. If only OPTIONAL checks failed, note them below the summary with the line "optional — only needed for …" and still run the smoke test (if the user agrees).
 
 ## Important
 
 - No sudo. No global installs. Everything in the project `.venv/`.
-- Respect `HTTPS_PROXY` / `HTTP_PROXY` env vars — just pass them through, don't strip them.
-- If the user is on a work laptop with network restrictions, failures will be network-shaped — surface the exact URL that was unreachable so they can get it whitelisted.
+- Respect `HTTPS_PROXY` / `HTTP_PROXY` env vars.
+- Descript is OPTIONAL. Skipping it doesn't block the pipeline; it only disables `/video-revoice`.
+- If a work-laptop DLP / proxy intercepts `pip install` or Claude Code's own API, surface the exact URL that was blocked so the user can take that to IT.
 - Never ask the user for a Descript or Higgsfield API key directly. That's what the MCP servers handle.
