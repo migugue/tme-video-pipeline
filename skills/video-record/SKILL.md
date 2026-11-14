@@ -9,10 +9,12 @@ Render the video for a spec.
 
 ## Which spec?
 
+**A spec file on disk is required.** Do not record from an inline or in-memory spec, even if the TME just finished `/video-new` and the spec is "in the chat". If `/video-new` did its job, there's a file in `specs/`.
+
 If the user passed a spec path, use it. Otherwise:
 - If there's exactly one `specs/*.json`, use it.
 - If there are several, list them with their last-modified times and ask which one.
-- If there are none, tell them to run `/video-new` first.
+- If there are none, tell them to run `/video-new` first — do NOT offer to draft and record in one go.
 
 ## Pre-flight checks
 

@@ -43,8 +43,9 @@ That skill will:
 ## Daily workflow
 
 ```
-/video-new  "Describe the video you want in a sentence or two"
-   → Claude drafts a spec, you edit it conversationally
+/video-new  "Describe the video you want + give me one of: URL, PDF, screenshot, or typed steps"
+   → Claude asks for the instructions in one of the four accepted forms,
+     confirms what it understood, writes specs/<name>.json
 
 /video-record
    → raw-CDP captures your Chrome, Zoe narrates
@@ -56,6 +57,40 @@ That skill will:
    → Claude pulls the finished mp4 back
    → out/<name>_myvoice.mp4
 ```
+
+## Spec authoring: ask, don't assume
+
+`/video-new` deliberately refuses to draft a spec from Claude's training knowledge of Central / UXI / EdgeConnect / any product. Give it one of four inputs:
+
+1. **URL** to the page the recording starts at — the recorder opens there, but the clicks still have to come from you
+2. **PDF** export of a VSG or field-guide page — Claude reads it for the exact steps
+3. **Screenshot** of the UI with steps marked or described — Claude describes what it sees back to you before drafting
+4. **Typed instructions** — "click Config, then Library, then System card, then NTP Server..." — Claude parses literally
+
+Claude confirms what it understood before writing the JSON. That round trip is the guardrail that keeps the plugin honest for tools Claude has never seen (your own internal apps, new product UIs, etc.).
+
+## Executing specs without Claude Code
+
+Spec execution is a **local-only** pipeline — Python + Chrome CDP + ffmpeg + macOS `say`. No outbound traffic beyond the loopback to Chrome's debug port. If the laptop's security stack (Zscaler DLP, corporate proxy, etc.) blocks Claude Code itself from reaching `api.anthropic.com`, the TME can still **run** pre-authored specs standalone:
+
+```bash
+# one time per shell session — find the current install path:
+PLUGIN=$(ls -d ~/.claude/plugins/cache/migugue-plugins/tme-video-pipeline/*/ | sort -V | tail -1)
+
+# live Chrome recording:
+.venv/bin/python "$PLUGIN/scripts/record_live.py" specs/<name>.json
+
+# CLI / simulated terminal recording:
+.venv/bin/python "$PLUGIN/scripts/record_terminal.py" specs/<name>.json
+```
+
+This is the pilot-friendly workflow when some TMEs are on Claude-Code-allowed machines and others aren't:
+
+1. A TME on a non-Zscaler machine (personal Mac, or HPE laptop with an Anthropic-API whitelist exception) uses `/video-new` to author specs and commits them to the shared repo.
+2. Other TMEs `git pull` the repo and run `scripts/record_live.py` directly from the terminal. No Claude Code involvement, no API traffic, no DLP trigger.
+3. Everyone revoices in Descript the same way.
+
+`/video-revoice` does need Claude Code (it drives the Descript MCP tools), but once a spec exists on disk, you can always shell out to the recorder to produce the mp4 even if the chat layer is blocked.
 
 ## Two content shapes supported
 
@@ -98,6 +133,8 @@ That skill will:
 | Recording captures only a frame or two | The Chrome tab is minimized or behind another window. Keep it visible during recording — Chrome throttles composition on hidden tabs |
 | `/video-revoice` fails at upload | The Descript MCP server isn't connected. In Claude Code, run `/mcp` and authorize Descript |
 | `pip install` fails with connection errors | Set `HTTPS_PROXY` in your shell and retry `/video-bootstrap` |
+| Zscaler (or similar DLP) blocks "SOURCE CODE upload" when Claude Code runs | Claude Code sends conversation context to Anthropic's API and the laptop's DLP classifies it as source-code upload. Get `api.anthropic.com` whitelisted by IT, or author specs on an unblocked machine and execute standalone (see "Executing specs without Claude Code" above) |
+| Recording captured, but the name typed at 2× speed was the problem | Known: setting `text` on both `keyDown` and `char` key events inserts twice. The recorder dispatches only `char` with text — if you see doubled characters, you're on an old version; re-install |
 
 ## License
 
