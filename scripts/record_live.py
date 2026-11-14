@@ -10,6 +10,7 @@ Spec format (JSON):
   "start_url": "https://...",                  // optional, navigates there first
   "narration": "...[[slnc 500]]...",           // say script, [[slnc N]] pauses honored
   "voice": "Zoe (Premium)",                    // optional override
+  "viewport": [1920, 1080],                    // optional; default 1920x1080, "window" = as-is
   "actions": [
     {"at": 6.3, "kind": "point",  "text": "Config"},
     {"at": 10.1, "kind": "click", "text": "Create Profile"},
@@ -280,6 +281,7 @@ def main(spec_path):
     try:
         cdp.send('Page.enable'); cdp.send('Runtime.enable')
         cdp.send('Page.bringToFront'); time.sleep(0.3)
+        cdp_core.set_viewport(cdp, cdp_core.resolve_viewport(spec))
 
         if spec.get('start_url'):
             cdp.send('Page.navigate', {'url': spec['start_url']})
@@ -317,6 +319,7 @@ def main(spec_path):
         ev(cdp, """(() => { for (const id of ['v8-cursor','v8-ring','v8-caption','v8-key','v8-tick'])
             { const e=document.getElementById(id); if (e) e.remove(); } delete window.__v8demo; })()""")
     finally:
+        cdp_core.clear_viewport(cdp)
         cdp.close()
 
     frames = rec.frames

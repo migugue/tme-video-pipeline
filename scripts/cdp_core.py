@@ -156,3 +156,40 @@ class Recorder:
             self.cdp.send('Page.stopScreencast')
         except Exception:
             pass
+
+
+# ---------- viewport ----------
+DEFAULT_VIEWPORT = (1920, 1080)
+
+
+def resolve_viewport(spec):
+    """Recording size as (w, h), or None to record the window as-is.
+
+    Precedence: spec "viewport" ([w, h] or "window"), then TME_VIEWPORT
+    env ("1920x1080" or "window"), then DEFAULT_VIEWPORT.
+    """
+    v = spec.get('viewport', os.environ.get('TME_VIEWPORT'))
+    if v is None:
+        return DEFAULT_VIEWPORT
+    if v == 'window':
+        return None
+    if isinstance(v, str):
+        v = v.lower().split('x')
+    w, h = (int(n) for n in v)
+    return w, h
+
+
+def set_viewport(cdp, size):
+    """Pin the page to an exact CSS-pixel size, independent of window size."""
+    if size:
+        cdp.send('Emulation.setDeviceMetricsOverride', {
+            'width': size[0], 'height': size[1],
+            'deviceScaleFactor': 1, 'mobile': False,
+        })
+
+
+def clear_viewport(cdp):
+    try:
+        cdp.send('Emulation.clearDeviceMetricsOverride')
+    except Exception:
+        pass

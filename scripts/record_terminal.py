@@ -91,6 +91,7 @@ def main(spec_path):
     try:
         cdp.send('Page.enable'); cdp.send('Runtime.enable')
         cdp.send('Page.bringToFront'); time.sleep(0.4)
+        cdp_core.set_viewport(cdp, cdp_core.resolve_viewport(spec))
 
         vw = ev(cdp, 'innerWidth'); vh = ev(cdp, 'innerHeight')
         print(f'viewport: {vw}x{vh}')
@@ -153,6 +154,7 @@ def main(spec_path):
         rec.stop()
         print(f'captured {len(rec.frames)} frames over {total:.2f}s')
     finally:
+        cdp_core.clear_viewport(cdp)
         cdp.close()
         # Close the terminal tab
         try:
