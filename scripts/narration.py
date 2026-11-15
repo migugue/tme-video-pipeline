@@ -31,6 +31,7 @@ DESCRIPT_SPELLINGS = {
     'AOS':    'A-O-S',       # followed by a space + 'eight' or 'ten' in context
     'WLAN':   'double U LAN',
     'SSID':   'S-S-I-D',
+    'HPE':    'H-P-E',
     'VLAN':   'Vee Lan',     # said as a word, not spelled out
     'VLANs':  'Vee Lans',
     'VRRP':   'V-R-R-P',
@@ -63,6 +64,7 @@ DESCRIPT_SPELLINGS = {
 # Each entry is (regex, replacement-or-callable). Order matters: longer patterns first.
 # ------------------------------------------------------------------
 FIX = [
+    (r"\bH-P-E\b", "HPE"),
     (r"\b[Vv]ee[ -][Ll]ans\b", "VLANs"), (r"\b[Vv]ee[ -][Ll]an\b", "VLAN"),
     (r"\bV-L-A-N's\b", "VLANs"),
     (r"\bValidate's\b", "VALID8's"), (r"\bValidate\b", "VALID8"),

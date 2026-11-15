@@ -179,12 +179,14 @@ def resolve_viewport(spec):
     return w, h
 
 
-def set_viewport(cdp, size):
-    """Pin the page to an exact CSS-pixel size, independent of window size."""
+def set_viewport(cdp, size, zoom=1):
+    """Pin the page to an exact size, independent of window size. `zoom` > 1 lays the page
+    out in fewer CSS pixels and renders them larger, so the recorded frame keeps `size`
+    pixels but everything on it is `zoom` times bigger."""
     if size:
         cdp.send('Emulation.setDeviceMetricsOverride', {
-            'width': size[0], 'height': size[1],
-            'deviceScaleFactor': 1, 'mobile': False,
+            'width': round(size[0] / zoom), 'height': round(size[1] / zoom),
+            'deviceScaleFactor': zoom, 'mobile': False,
         })
 
 

@@ -11,6 +11,7 @@ Spec format (JSON):
   "narration": "...[[slnc 500]]...",           // say script, [[slnc N]] pauses honored
   "voice": "Zoe (Premium)",                    // optional override
   "viewport": [1920, 1080],                    // optional; default 1920x1080, "window" = as-is
+  "zoom": 1.2,                                 // optional; enlarge the page inside the same frame
   "actions": [
     {"at": 6.3, "kind": "point",  "text": "Config"},
     {"at": 10.1, "kind": "click", "text": "Create Profile"},
@@ -443,7 +444,8 @@ def main(spec_path):
     try:
         cdp.send('Page.enable'); cdp.send('Runtime.enable')
         cdp.send('Page.bringToFront'); time.sleep(0.3)
-        cdp_core.set_viewport(cdp, cdp_core.resolve_viewport(spec))
+        zoom = float(spec.get('zoom', 1))
+        cdp_core.set_viewport(cdp, cdp_core.resolve_viewport(spec), zoom)
 
         if spec.get('start_url'):
             cdp.send('Page.navigate', {'url': spec['start_url']})
@@ -458,7 +460,10 @@ def main(spec_path):
 
         frames_dir = os.path.join(build_dir, 'frames')
         rec = cdp_core.Recorder(cdp, frames_dir)
-        rec.start(vw, vh)
+        # Ask for frames at the full target size. The spec's zoom and the user's own browser
+        # zoom both shrink innerWidth, so sizing the capture from it would lose resolution.
+        target = cdp_core.resolve_viewport(spec) or (vw, vh)
+        rec.start(*target)
         time.sleep(0.5)
         t0 = time.time()
 
@@ -515,7 +520,7 @@ def main(spec_path):
         FF, '-y', '-loglevel', 'warning',
         '-framerate', str(FPS), '-i', os.path.join(seq_dir, '%06d.jpg'),
         '-i', audio_m4a,
-        '-vf', 'pad=ceil(iw/2)*2:ceil(ih/2)*2,format=yuv420p',
+        '-vf', f'scale={target[0]}:{target[1]}:flags=lanczos,pad=ceil(iw/2)*2:ceil(ih/2)*2,format=yuv420p',
         '-c:v', 'libx264', '-preset', 'medium', '-crf', '20',
         '-c:a', 'aac', '-b:a', '160k',
         '-shortest', '-t', f'{length:.2f}', '-movflags', '+faststart',
