@@ -20,6 +20,29 @@ Spec format (JSON):
   ]
 }
 
+Action kinds:
+  point                   ring a button/link found by exact text (no click)
+  click                   click a button/link found by exact text
+  click_button_with_text  same; `right_side: true` picks the wide button at the bottom right
+  type                    click input[name=<field>] and type `text`
+  type_into_placeholder   click the input whose placeholder contains `placeholder`, type `text`
+  scroll_to_text          scroll a label/heading with exact text into view
+  hover                   move the real mouse over an element so hover-only controls appear.
+                          Target: `text` (exact text of ANY element, e.g. a table cell) or `selector`.
+  point_selector          ring an element found by CSS `selector` (no click) - for things that
+                          are not buttons, e.g. "label:has(input[name=enable_vlan])"
+  click_selector          click an element found by CSS `selector` - for icon buttons with no
+                          text and for dropdown options.
+  wait                    do nothing until `at`
+  goto                    navigate to `url`
+
+The three selector kinds (and hover) accept two optional filters:
+  "text": "Assign"            keep only matches whose own text is exactly this
+  "near_text": "my-profile"   of the matches, take the one on the same row as (vertically
+                              closest to) the element with this exact text
+e.g. {"at": 40, "kind": "hover", "text": "my-profile"},
+     {"at": 41, "kind": "click_selector", "selector": "#options-anchor", "near_text": "my-profile"}
+
 Each action's `at` is seconds after screencast starts. Clicks lead the narration
 cue by ~0.2 s so the voice confirms what just happened.
 
@@ -144,6 +167,66 @@ def input_by_placeholder(cdp, ph_substr):
     return ev(cdp, js)
 
 
+def box_by_selector(cdp, selector=None, text=None, near_text=None):
+    """Box of a visible element. `selector` narrows by CSS (default: any element),
+    `text` keeps exact-text matches, `near_text` picks the match on the same row as
+    the element carrying that text. Smallest match wins otherwise."""
+    js = f"""
+    (() => {{
+      const sel = {json.dumps(selector)}, want = {json.dumps(text)}, near = {json.dumps(near_text)};
+      const txt = e => (e.innerText || e.textContent || '').trim();
+      const vis = e => {{
+        if (!e.offsetParent && getComputedStyle(e).position !== 'fixed') return false;
+        const r = e.getBoundingClientRect();
+        return r.width > 2 && r.height > 2 && r.bottom > 0 && r.top < innerHeight;
+      }};
+      const area = e => {{ const r = e.getBoundingClientRect(); return r.width * r.height; }};
+      const smallest = (css, t) => [...document.querySelectorAll(css)]
+        .filter(e => !e.closest('#v8-cursor,#v8-ring,#v8-caption,#v8-key,#v8-tick'))
+        .filter(e => vis(e) && (t === null || txt(e) === t))
+        .sort((a, b) => area(a) - area(b));
+      let cands = smallest(sel || '*', want);
+      // Prefer targets that are actually on top (not covered by a side panel or dialog).
+      const onTop = e => {{
+        const r = e.getBoundingClientRect();
+        const h = document.elementFromPoint(r.x + r.width / 2, r.y + r.height / 2);
+        return !!h && (e === h || e.contains(h) || h.contains(e));
+      }};
+      const top = cands.filter(onTop);
+      if (top.length) cands = top;
+      if (!cands.length) return null;
+      if (near !== null) {{
+        const anchor = smallest('*', near)[0];
+        if (!anchor) return null;
+        const ar = anchor.getBoundingClientRect(), ay = ar.y + ar.height / 2;
+        const dy = e => {{ const r = e.getBoundingClientRect(); return Math.abs(r.y + r.height / 2 - ay); }};
+        cands.sort((a, b) => dy(a) - dy(b));
+      }}
+      const r = cands[0].getBoundingClientRect();
+      return {{x: r.x, y: r.y, w: r.width, h: r.height}};
+    }})()
+    """
+    return ev(cdp, js)
+
+
+def target_box(cdp, action, timeout=5):
+    """Resolve the selector/text/near_text target of an action, waiting for it to appear."""
+    if not (action.get('selector') or action.get('text')):
+        raise ValueError(f'{action["kind"]} needs "selector" or "text"')
+    desc = ' '.join(f'{k}={action[k]!r}' for k in ('selector', 'text', 'near_text') if action.get(k))
+    return wait_for(lambda: box_by_selector(cdp, action.get('selector'), action.get('text'),
+                                            action.get('near_text')),
+                    timeout=timeout, desc=f'{action["kind"]} target {desc}')
+
+
+def mouse_move(cdp, box):
+    """Move the REAL mouse (not just the overlay cursor) so :hover styles and
+    mouseenter handlers fire."""
+    cdp.send('Input.dispatchMouseEvent', {
+        'type': 'mouseMoved', 'x': box['x'] + box['w'] / 2, 'y': box['y'] + box['h'] / 2,
+    }, timeout=5)
+
+
 def wide_button_at_bottom(cdp, text, x_min=1500):
     js = f"""
     (() => {{
@@ -244,6 +327,27 @@ def run_action(cdp, action, t0):
 
     elif kind == 'scroll_to_text':
         scroll_to_text(cdp, action['text'])
+
+    elif kind == 'hover':
+        box = target_box(cdp, action)
+        point_box(cdp, box, show_ring=action.get('ring', False), hold_ms=action.get('lead_ms', 300))
+        mouse_move(cdp, box)
+        time.sleep(action.get('hold_ms', 400) / 1000)
+
+    elif kind == 'point_selector':
+        try:
+            box = target_box(cdp, action, timeout=3)
+        except RuntimeError:
+            if action.get('optional'):
+                return
+            raise
+        point_box(cdp, box, hold_ms=action.get('hold_ms', 600))
+
+    elif kind == 'click_selector':
+        box = target_box(cdp, action)
+        point_box(cdp, box, hold_ms=action.get('lead_ms', 300))
+        mouse_move(cdp, box)
+        mouse_click(cdp, box)
 
     elif kind == 'wait':
         pass  # `at` already held us here
