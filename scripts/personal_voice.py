@@ -2,9 +2,11 @@
 macOS Personal Voice - and re-sync the picture to it. No Descript, no second take.
 
 Usage:
-    python personal_voice.py <spec.json> <draft.mp4> <out.mp4> [voice]
+    python personal_voice.py <spec.json> <draft.mp4> <out.mp4> [voice] [rate]
 
   voice   "personal" (default) = your macOS Personal Voice, or part of a system voice name.
+  rate    Personal Voice pace: 0.5 = its normal pace (default), 0.53 = about a third faster,
+          which roughly matches the Zoe draft. Small steps - the scale is steep.
 
 Personal Voice needs a one-time permission: System Settings > Accessibility > Personal Voice >
 "Allow applications to request to use", then approve the prompt the first time this runs.
@@ -31,7 +33,7 @@ RATE = 48000
 SENTENCE_GAP_MS = 350   # pause after a sentence that has no [[slnc]] of its own
 
 
-def main(spec_path, draft, dst, voice='personal'):
+def main(spec_path, draft, dst, voice='personal', rate=None):
     spec = json.load(open(spec_path))
     script = spec['narration']
     name = spec.get('name') or os.path.splitext(os.path.basename(spec_path))[0]
@@ -62,7 +64,7 @@ def main(spec_path, draft, dst, voice='personal'):
         # macOS will speak a Personal Voice but not render it to a file, so play it aloud
         # and record the Mac's own sound output, then cut that recording back into chunks.
         print('Speaking the narration aloud and recording it - keep the Mac otherwise silent...')
-        r = subprocess.run(['swift', os.path.join(HERE, 'pv_speak_record.swift'), voice, cj, work],
+        r = subprocess.run(['swift', os.path.join(HERE, 'pv_speak_record.swift'), voice, cj, work] + ([str(rate)] if rate else []),
                            capture_output=True, text=True)
     else:
         r = subprocess.run(['swift', os.path.join(HERE, 'pv_say.swift'), voice, cj, work], capture_output=True, text=True)
@@ -112,7 +114,7 @@ def main(spec_path, draft, dst, voice='personal'):
 
 
 if __name__ == '__main__':
-    if len(sys.argv) not in (4, 5):
-        sys.stderr.write('usage: personal_voice.py <spec.json> <draft.mp4> <out.mp4> [voice]\n')
+    if len(sys.argv) not in (4, 5, 6):
+        sys.stderr.write('usage: personal_voice.py <spec.json> <draft.mp4> <out.mp4> [voice] [rate]\n')
         sys.exit(2)
-    main(*sys.argv[1:5])
+    main(*sys.argv[1:6])

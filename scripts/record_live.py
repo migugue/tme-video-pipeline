@@ -374,6 +374,9 @@ def main(spec_path):
 
     audio_m4a = os.path.join(build_dir, 'narration.m4a')
     build_m4a(spec['narration'], audio_m4a, voice=spec.get('voice', DEFAULT_VOICE))
+    # retime.py needs the exact text this take was spoken with, even if the spec is edited later
+    with open(os.path.join(build_dir, 'draft_narration.txt'), 'w') as f:
+        f.write(spec['narration'])
     dur = audio_duration(audio_m4a)
     print(f'narration: {dur:.2f} s')
 

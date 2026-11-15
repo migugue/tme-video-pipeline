@@ -2,7 +2,10 @@
 // sound output while it does. This is the only way to get a macOS Personal Voice into
 // a file: macOS will speak it but will not render it to a buffer.
 //
-//   swift pv_speak_record.swift personal|<voice name substring> chunks.json outdir
+//   swift pv_speak_record.swift personal|<voice name substring> chunks.json outdir [rate]
+//
+// rate: AVSpeechUtterance rate, 0.5 = the voice's normal pace. It is steep: 0.53 is already
+// about a third faster for a Personal Voice.
 //
 // Writes outdir/playback.wav (everything the Mac played) and outdir/marks.json
 // ([[start, end], ...] seconds into playback.wav, one pair per chunk).
@@ -15,7 +18,8 @@ import ScreenCaptureKit
 func die(_ msg: String, _ code: Int32) -> Never { FileHandle.standardError.write((msg + "\n").data(using: .utf8)!); exit(code) }
 
 let a = CommandLine.arguments
-guard a.count == 4 else { die("usage: pv_speak_record.swift personal|<name> chunks.json outdir", 2) }
+guard a.count == 4 || a.count == 5 else { die("usage: pv_speak_record.swift personal|<name> chunks.json outdir [rate]", 2) }
+let rate: Float = a.count == 5 ? (Float(a[4]) ?? AVSpeechUtteranceDefaultSpeechRate) : AVSpeechUtteranceDefaultSpeechRate
 let query = a[1], outDir = URL(fileURLWithPath: a[3])
 let texts = try JSONSerialization.jsonObject(with: Data(contentsOf: URL(fileURLWithPath: a[2]))) as! [String]
 
@@ -108,6 +112,7 @@ func now() -> Double { CMClockGetTime(CMClockGetHostTimeClock()).seconds }
     for (i, text) in texts.enumerated() {
         let utt = AVSpeechUtterance(string: text)
         utt.voice = v
+        utt.rate = rate
         let s = now() - zero
         await withCheckedContinuation { (c: CheckedContinuation<Void, Never>) in
             waiter.onFinish = { c.resume() }

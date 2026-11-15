@@ -74,6 +74,14 @@ def draft_starts(spec, draft):
     """When each sentence starts in the draft: render the narration up to that sentence
     with the same voice and measure it, then snap to the real pause in the draft audio."""
     script, voice = spec['narration'], spec.get('voice', DEFAULT_VOICE)
+    # The draft may have been recorded before the spec's narration was respelled for another
+    # voice; the recorder keeps the text it actually spoke next to its build files.
+    name = spec.get('name') or ''
+    spoken = os.path.join(os.getcwd(), 'build', name, 'draft_narration.txt')
+    if os.path.exists(spoken):
+        was = open(spoken).read()
+        if len(sentence_offsets(was)) == len(sentence_offsets(script)):
+            script = was
     ends = [e for _, e in silences(draft)]
     starts = [0.0]
     with tempfile.TemporaryDirectory() as tmp:
