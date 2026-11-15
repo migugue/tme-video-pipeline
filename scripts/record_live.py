@@ -33,6 +33,11 @@ Action kinds:
                           are not buttons, e.g. "label:has(input[name=enable_vlan])"
   click_selector          click an element found by CSS `selector` - for icon buttons with no
                           text and for dropdown options.
+  caption                 show `text` as a caption bar at the bottom of the frame ('' hides it).
+                          It stays up, across page changes too, until the next caption action.
+  scroll                  smooth-scroll a `selector` (optionally filtered by exact `text`) to the
+                          top of its scroll area, e.g. {"kind": "scroll", "selector": "#rollback"};
+                          `offset` px of space is left above it (default 110).
   wait                    do nothing until `at`
   goto                    navigate to `url`
 
@@ -73,8 +78,37 @@ def ev(cdp, expr, timeout=10):
     return r['result'].get('value')
 
 
+OVERLAY = {'js': None, 'caption': '', 'cursor': None}
+
+
 def inject_overlay(cdp, overlay_js):
+    OVERLAY['js'] = overlay_js
     ev(cdp, overlay_js)
+
+
+def ensure_overlay(cdp, timeout=6):
+    """A click or goto that loads a new page wipes the injected cursor and caption.
+    Wait for the new document, put the overlay back, and restore what it was showing."""
+    if not OVERLAY['js']:
+        return
+    end = time.time() + timeout
+    while time.time() < end:
+        try:
+            if ev(cdp, 'document.readyState !== "loading" && !!document.body', timeout=3):
+                break
+        except Exception:
+            pass                      # mid-navigation: the old page's context is gone
+        time.sleep(0.15)
+    try:
+        if ev(cdp, '!!(window.__v8demo && document.getElementById("v8-cursor"))', timeout=3):
+            return
+        ev(cdp, 'delete window.__v8demo')
+        ev(cdp, OVERLAY['js'])
+        if OVERLAY['cursor']:
+            ev(cdp, '__v8demo.moveTo(%s, %s)' % OVERLAY['cursor'])
+        ev(cdp, '__v8demo.caption(%s)' % json.dumps(OVERLAY['caption']))
+    except Exception:
+        pass
 
 
 def point_box(cdp, box, show_ring=True, hold_ms=500):
@@ -84,6 +118,7 @@ def point_box(cdp, box, show_ring=True, hold_ms=500):
     cy = box['y'] + box['h'] / 2
     ring = ('{x: %s, y: %s, width: %s, height: %s}' % (box['x'], box['y'], box['w'], box['h'])
             if show_ring else 'null')
+    OVERLAY['cursor'] = (cx, cy)
     ev(cdp, '__v8demo.moveTo(%s, %s); __v8demo.ring(%s);' % (cx, cy, ring))
     time.sleep(hold_ms / 1000)
 
@@ -101,7 +136,10 @@ def mouse_click(cdp, box):
             'clickCount': 1, 'buttons': 1,
         }, timeout=5)
     time.sleep(0.3)
-    clear_ring(cdp)
+    try:
+        clear_ring(cdp)
+    except Exception:
+        pass   # the click loaded a new page and took the overlay with it; ensure_overlay restores it
 
 
 def type_text(cdp, s, delay_ms=65):
@@ -349,6 +387,23 @@ def run_action(cdp, action, t0):
         mouse_move(cdp, box)
         mouse_click(cdp, box)
 
+    elif kind == 'caption':
+        OVERLAY['caption'] = action.get('text', '')
+        ev(cdp, '__v8demo.caption(%s)' % json.dumps(OVERLAY['caption']))
+
+    elif kind == 'scroll':
+        js = """
+        (() => {
+          const sel = %s, want = %s, off = %s;
+          const txt = e => (e.innerText || e.textContent || '').trim();
+          const el = [...document.querySelectorAll(sel)].find(e => want === null || txt(e) === want);
+          if (!el) return false;
+          el.style.scrollMarginTop = off + 'px';
+          el.scrollIntoView({behavior: 'smooth', block: 'start'});
+          return true;
+        })()""" % (json.dumps(action['selector']), json.dumps(action.get('text')), int(action.get('offset', 110)))
+        wait_for(lambda: ev(cdp, js), timeout=6, desc=f'scroll target {action["selector"]!r}')
+
     elif kind == 'wait':
         pass  # `at` already held us here
 
@@ -410,7 +465,11 @@ def main(spec_path):
         # 3. Run actions in order
         for i, action in enumerate(spec['actions']):
             print(f'  action {i}: {action.get("kind")} @ {action.get("at")}s')
+            ensure_overlay(cdp)
             run_action(cdp, action, t0)
+            if action.get('kind') in ('click', 'click_selector', 'click_button_with_text', 'goto'):
+                time.sleep(0.25)
+                ensure_overlay(cdp)   # the click may have loaded a new page
 
         # 4. Hold through end of narration, keeping overlay repaint active
         end = t0 + dur + 0.4

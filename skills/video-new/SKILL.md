@@ -48,7 +48,7 @@ Base the spec on the right template:
 
 - Each `actions[]` entry has `at` (seconds since screencast start), a `kind`, and kind-specific fields.
 - The action should LEAD its narration cue by ~0.2 s so the voice confirms what just happened.
-- Supported `kind` values are only those documented at the top of `scripts/record_live.py`: `point`, `click`, `type`, `type_into_placeholder`, `click_button_with_text`, `scroll_to_text`, `hover`, `point_selector`, `click_selector`, `wait`, `goto`. Prefer the text-based kinds; reach for `hover` / `point_selector` / `click_selector` only when the target has no button text (row-hover icons, checkbox labels, dropdown options). Do NOT invent new kinds — if the TME's step doesn't map to one of these, say so and ask them to describe it differently.
+- Supported `kind` values are only those documented at the top of `scripts/record_live.py`: `point`, `click`, `type`, `type_into_placeholder`, `click_button_with_text`, `scroll_to_text`, `hover`, `point_selector`, `click_selector`, `caption`, `scroll`, `wait`, `goto`. Prefer the text-based kinds; reach for `hover` / `point_selector` / `click_selector` only when the target has no button text (row-hover icons, checkbox labels, dropdown options). Do NOT invent new kinds — if the TME's step doesn't map to one of these, say so and ask them to describe it differently.
 
 ## Step 4 — Write the spec file to disk, show the path
 
