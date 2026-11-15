@@ -103,7 +103,7 @@ def srt_time(t):
     return f'{ms // 3600000:02}:{ms // 60000 % 60:02}:{ms // 1000 % 60:02},{ms % 1000:03}'
 
 
-def main(spec_path, draft, revoiced, dst):
+def main(spec_path, draft, revoiced, dst, starts_json=None):
     spec = json.load(open(spec_path))
     script = spec['narration']
     offs = sentence_offsets(script)
@@ -113,7 +113,11 @@ def main(spec_path, draft, revoiced, dst):
 
     d_total, r_total = duration(draft), duration(revoiced)
     d = [max(0.0, t - PREROLL) if i else 0.0 for i, t in enumerate(draft_starts(spec, draft))]
-    r = [max(0.0, t - PREROLL) if i else 0.0 for i, t in enumerate(revoiced_starts(revoiced, n))]
+    # starts_json: exact sentence starts, when the caller rendered the audio itself and knows them
+    r_raw = json.load(open(starts_json)) if starts_json else revoiced_starts(revoiced, n)
+    if len(r_raw) != n:
+        raise SystemExit(f'{starts_json} lists {len(r_raw)} sentence starts but the narration has {n} sentences')
+    r = [max(0.0, t - PREROLL) if i else 0.0 for i, t in enumerate(r_raw)]
     d_end, r_end = d[1:] + [d_total], r[1:] + [r_total]
     fr = freezes(draft)
 
@@ -155,7 +159,7 @@ def main(spec_path, draft, revoiced, dst):
 
 
 if __name__ == '__main__':
-    if len(sys.argv) != 5:
-        sys.stderr.write('usage: retime.py <spec.json> <draft.mp4> <revoiced.mp4> <out.mp4>\n')
+    if len(sys.argv) not in (5, 6):
+        sys.stderr.write('usage: retime.py <spec.json> <draft.mp4> <revoiced.mp4|.wav> <out.mp4> [sentence_starts.json]\n')
         sys.exit(2)
-    main(*sys.argv[1:5])
+    main(*sys.argv[1:6])
