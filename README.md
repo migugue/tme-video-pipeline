@@ -18,7 +18,7 @@ Record narrated walkthrough videos of live web apps (Aruba Central, VALID8, anyt
 - Python 3.11 or later
 - Chrome Stable
 - Zoe Premium macOS voice — open **System Settings**, search `voice`, click **Spoken Content** in the results, open the **System Voice** dropdown → the bottom option (**Manage Voices…**, **Customize…**, or **Download More Voices…** depending on your macOS version) → expand **English (United Kingdom)** → check **Zoe (Premium)** → OK. Verify with `say -v '?' | grep -i Zoe`
-- A Descript account with a cloned voice, if you want to use `/video-revoice`
+- A Descript account, if you want to use `/video-revoice` (you pick the AI voice inside Descript — your own cloned voice or a stock speaker)
 
 ## Install
 
@@ -36,7 +36,7 @@ That skill will:
 1. Create a `.venv/` in the current folder (no sudo)
 2. `pip install` the handful of Python dependencies (honors `HTTPS_PROXY`)
 3. Verify Chrome, Zoe Premium, and ffmpeg are reachable
-4. Ask for your cloned Descript voice name (if you plan to use `/video-revoice`)
+4. Ask whether you'll use Descript to generate an AI voice or just the Mac system voice
 5. Save your preferences to `~/.config/tme-video/tme-video.toml`
 6. Record a 10-second hello-world demo
 
@@ -53,8 +53,9 @@ That skill will:
 
 /video-revoice     (optional)
    → uploads to Descript, applies acronym rules
-   → you open the Descript URL, Overdub with your cloned voice, publish
-   → Claude pulls the finished mp4 back
+   → you open the Descript URL, put each sentence on its own line,
+     regenerate the narration in the AI voice you choose, publish
+   → Claude pulls it back and re-syncs the clicks to the new voice
    → out/<name>_myvoice.mp4
 ```
 
@@ -104,7 +105,7 @@ This is the pilot-friendly workflow when some TMEs are on Claude-Code-allowed ma
 - **Screencast capture** — Chrome emits JPEG frames via `Page.startScreencast`; we ack each one from the reader thread via `fire()` (not `send()`) to avoid a deadlock.
 - **Overlay** — an injected cursor + ring + tick element gives each frame a visual change, so Chrome's "only composite on change" screencast still emits at a steady rate.
 - **Narration** — `scripts/narration.py` wraps `say -v "Zoe (Premium)"` with `[[slnc N]]` pauses that correspond to the UI's slow transitions (panel slide-in, sub-panel open/close). We detect the actual silence boundaries in the resulting .m4a with `ffmpeg silencedetect` and use those as action anchors — so if your narration grows or shrinks by a word, the clicks still land in the right place.
-- **Descript revoice** — upload via the Descript MCP server, prompt the Agent Underlord to normalize acronyms (`NTP` → `N-T-P`, `MAC` → `Mac`, etc. — rules in `scripts/narration.py`), you revoice in-app, Claude pulls the HLS stream and muxes to mp4.
+- **Descript revoice** — upload via the Descript MCP server, prompt the Agent Underlord to normalize acronyms (`NTP` → `N-T-P`, `MAC` → `Mac`, etc. — rules in `scripts/narration.py`), you revoice in-app (one sentence per line), Claude pulls the HLS stream, then `scripts/retime.py` fits each sentence's footage to the new voice — trimming idle tails or holding the last frame — so no second take is needed.
 - **FIX table** — `scripts/narration.py` keeps a regex table that reverses the Descript-script spellings back to normal for the YouTube SRT (so "N-T-P" in the voice script shows as "NTP" in the captions).
 
 ## Guardrails

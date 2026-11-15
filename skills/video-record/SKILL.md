@@ -52,7 +52,7 @@ The script prints paths. Confirm the mp4 exists and show its size and duration:
 
 If they want to retake, tell them to edit `specs/<name>.json` (or describe the change and you'll edit it) and re-run `/video-record`.
 
-If they're happy with the draft and want their own voice, next step is `/video-revoice`.
+If they're happy with the draft: when `[descript].use_descript` in `~/.config/tme-video/tme-video.toml` is true, offer `/video-revoice` as the next step. When it's false or missing, the Mac-voice mp4 is the finished video — mention `/video-revoice` only as an option, don't push it.
 
 ## Failure modes to catch
 

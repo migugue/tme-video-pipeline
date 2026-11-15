@@ -12,7 +12,7 @@ Guide the user through first-time setup of the tme-video-pipeline plugin. Do NOT
 Checks fall into two classes:
 
 - **Required** — if any of these fail, the recording pipeline doesn't work. Block the smoke test; tell the user what to fix.
-- **Optional** — needed only for `/video-revoice` (the cloned-voice path). A failure here is informational — the smoke test, `/video-new`, and `/video-record` all still work on the zero-cost default (Mac `say` + raw-CDP).
+- **Optional** — needed only for `/video-revoice` (the Descript AI-voice path). A failure here is informational — the smoke test, `/video-new`, and `/video-record` all still work on the zero-cost default (Mac `say` + raw-CDP).
 
 | Check | Class |
 |---|---|
@@ -20,7 +20,6 @@ Checks fall into two classes:
 | Python 3.11+ | Required |
 | Zoe Premium voice | Required (default narration) |
 | Descript MCP connected | **Optional** — only for `/video-revoice` |
-| Descript cloned-voice name | Optional — only for `/video-revoice` |
 
 ## Checks to run, in order
 
@@ -45,7 +44,7 @@ If `HTTPS_PROXY` is set, mention pip will use it. If pip fails with a network er
 ### 3. Preferences file
 
 Ask the user:
-1. **Will you use `/video-revoice` (cloned voice in Descript)?** If no, skip step 2 and leave `cloned_voice_name` blank. If yes, ask for the display name of their cloned voice (e.g., "Miguel Deeper Voice").
+1. **Narration: will you use Descript to generate an AI voice, or just the Mac system voice?** Record the answer as `use_descript`. Do NOT ask for a voice name — they pick the voice inside Descript when they get there, and it's different for everyone.
 2. **Preferred draft narration voice.** Default: `Zoe (Premium)`. Don't offer other options unless they ask.
 
 Write to `~/.config/tme-video/tme-video.toml` (create the directory if missing):
@@ -54,7 +53,7 @@ Write to `~/.config/tme-video/tme-video.toml` (create the directory if missing):
 voice = "Zoe (Premium)"
 
 [descript]
-cloned_voice_name = ""   # or the name they gave
+use_descript = false     # true if they said they will generate an AI voice in Descript
 
 [chrome]
 cdp_port = 9333
